@@ -411,10 +411,6 @@ int liggghts_reader::RequestData(vtkInformation *request, vtkInformationVector *
     			OTHERVECpos[noovec][0]=pos;
     			item.resize(item.size()-3); //chop off the brackets
 	    		OTHERVECname[noovec]=item.c_str();
-
-    			vtkWarningMacro(<<"processed VECTOR item: " << OTHERVECname[noovec]
-    			                << " @Pos: " << pos);
-
 	    		noovec++;
 	    		pos++;
 			}
@@ -425,11 +421,6 @@ int liggghts_reader::RequestData(vtkInformation *request, vtkInformationVector *
         			vtkErrorMacro(<<"could not find first component of vector with name: " <<item.c_str());
 			    int component = item[item.size()-2] - '0'; //convert to integer
     			OTHERVECpos[noovec-1][component-1]=pos; 
-
-    			vtkWarningMacro(<<"processed VECTOR item:" << OTHERVECname[noovec-1]
-    			                << " @Pos: " << pos 
-    			                << " component: " << component);
-    			                
 	    		pos++;
 			}
 			else
