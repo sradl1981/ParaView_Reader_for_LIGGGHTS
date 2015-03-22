@@ -129,6 +129,7 @@ int liggghts_reader::RequestData(vtkInformation *request, vtkInformationVector *
 	vtkFloatArray **vectors = NULL;
 	vtkFloatArray **scalars = NULL;
 	vtkFloatArray **others = NULL;
+	vtkFloatArray **othersVec = NULL;
 
 #define MSG(x) vtkWarningMacro(x)
 
@@ -175,7 +176,8 @@ int liggghts_reader::RequestData(vtkInformation *request, vtkInformationVector *
 	int pos=0;
 	int nov=0; //number of vectors
 	int nos=0; //number of scalars
-	int noo=0; //number of other variants (fixes, computes, variables, colors ...)
+	int noo=0;    //number of other variants (fixes, computes, variables, colors ...)
+	int noovec=0; //number of other VECTOR quantities (fixes, computes, variables, colors ...)
 
 	int xpos=-1;
 	int ypos=-1;
@@ -202,8 +204,10 @@ int liggghts_reader::RequestData(vtkInformation *request, vtkInformationVector *
 	int QUATpos[4]={-1,-1,-1,-1};
 	int TQpos[3]={-1,-1,-1};
 	int OTHERpos[128]={-1};
+	int OTHERVECpos[128][3]={-1};
 
 	std::string OTHERname[128];
+	std::string OTHERVECname[128];
 
 	while(std::getline(ss, item, ' ')) {
 		if (item.compare("id") == 0) {
@@ -401,10 +405,40 @@ int liggghts_reader::RequestData(vtkInformation *request, vtkInformationVector *
 			pos++;
 		} else {
 			//vtkErrorMacro(<<"unknown item @Pos" << pos << " " <<item.c_str());
-			OTHERpos[noo]=pos;
-			OTHERname[noo]=item.c_str();
-			noo++;
-			pos++;
+			if( item.compare(item.size()-3,3,"[1]") == 0 ) //check if first component of vector quantity
+			{
+//    			vtkErrorMacro(<<"unknown VECTOR item @Pos" << pos << " " <<item.c_str());
+    			OTHERVECpos[noovec][0]=pos;
+    			item.resize(item.size()-3); //chop off the brackets
+	    		OTHERVECname[noovec]=item.c_str();
+
+    			vtkWarningMacro(<<"processed VECTOR item: " << OTHERVECname[noovec]
+    			                << " @Pos: " << pos);
+
+	    		noovec++;
+	    		pos++;
+			}
+			else if(  item.compare(item.size()-3,3,"[2]") == 0
+			        ||item.compare(item.size()-3,3,"[3]") == 0 ) 
+			{
+			    if( noovec==0 )
+        			vtkErrorMacro(<<"could not find first component of vector with name: " <<item.c_str());
+			    int component = item[item.size()-2] - '0'; //convert to integer
+    			OTHERVECpos[noovec-1][component-1]=pos; 
+
+    			vtkWarningMacro(<<"processed VECTOR item:" << OTHERVECname[noovec-1]
+    			                << " @Pos: " << pos 
+    			                << " component: " << component);
+    			                
+	    		pos++;
+			}
+			else
+			{
+    			OTHERpos[noo]=pos;
+	    		OTHERname[noo]=item.c_str();
+	    		noo++;
+	    		pos++;
+	        }
 		}
 	}
 
@@ -437,6 +471,11 @@ int liggghts_reader::RequestData(vtkInformation *request, vtkInformationVector *
 	{
 		others = new vtkFloatArray*[noo];
 		if (others == NULL) vtkErrorMacro("FATAL: Not enough Memory for others!");
+	}
+	if (noovec > 0)
+	{
+		othersVec = new vtkFloatArray*[noovec];
+		if (othersVec == NULL) vtkErrorMacro("FATAL: Not enough Memory for othersVec!");
 	}
 
 	int n_vec=0;
@@ -701,6 +740,17 @@ int liggghts_reader::RequestData(vtkInformation *request, vtkInformationVector *
 		others[i]->SetName(OTHERname[i].c_str());
 	}
 
+
+	for (int i=0;i<noovec;i++) {
+		othersVec[i]= vtkFloatArray::New();
+		othersVec[i]->SetNumberOfComponents(3);
+		othersVec[i]->SetComponentName(0,"X");
+		othersVec[i]->SetComponentName(1,"Y");
+		othersVec[i]->SetComponentName(2,"Z");
+		othersVec[i]->SetNumberOfTuples(COUNT);
+		othersVec[i]->SetName(OTHERVECname[i].c_str());
+	}
+
 	//vtkErrorMacro(<<"got "<<n_scal<<"Scalars");
 	//vtkErrorMacro(<<"got "<<n_vec<<"Vectors");
 
@@ -727,8 +777,10 @@ int liggghts_reader::RequestData(vtkInformation *request, vtkInformationVector *
 	float angmom[3];
 	double quat[4];
 	float tq[3];
+	
+	double otherVecTmp[noovec][3]; //tmp vec to save information
 
-    	int ic=0;
+    int ic=0;
 	int lc=0; // Linecounter
 	int pc=0;
 	while ( this->File->getline(line,sizeof(line)) ) { //every line
@@ -794,8 +846,15 @@ int liggghts_reader::RequestData(vtkInformation *request, vtkInformationVector *
 
 			else 
 			{ //nothing known
-				for (int i=0;i<noo;i++) 
+				for (int i=0;i<noo;i++) //Scalars
 					if (ic==OTHERpos[i]) others[i]->InsertTuple1(lc, tmp);
+
+				for (int i=0;i<noovec;i++) //Vectors, put into tmp vector and insert later
+				{
+					if      (ic==OTHERVECpos[i][0]) otherVecTmp[i][0]=tmp;
+					else if (ic==OTHERVECpos[i][1]) otherVecTmp[i][1]=tmp;
+					else if (ic==OTHERVECpos[i][2]) otherVecTmp[i][2]=tmp;
+			    }
 			}			
 
 			ic++;
@@ -813,6 +872,8 @@ int liggghts_reader::RequestData(vtkInformation *request, vtkInformationVector *
 		if (v_ANGMOMpos>=0) vectors[v_ANGMOMpos]->InsertTuple(lc, angmom);
 		if (v_QUATpos>=0) vectors[v_QUATpos]->InsertTuple4(lc, quat[0],quat[1],quat[2],quat[3]);
 		if (v_TQpos>=0) vectors[v_TQpos]->InsertTuple(lc, tq);
+        for (int i=0;i<noovec;i++) //Vectors
+            othersVec[i]->InsertTuple(lc, otherVecTmp[i]);
 
 		lc++;
 
@@ -883,6 +944,12 @@ int liggghts_reader::RequestData(vtkInformation *request, vtkInformationVector *
 		}
 	}
 
+	if (noovec>0) {
+		for (int i=0;i<noovec;i++) {
+			myoutput->GetPointData()->AddArray(othersVec[i]);
+		}
+	}
+
 	vtkIntArray *intValue;
 	intValue = vtkIntArray::New();
 	intValue->SetNumberOfComponents(1);
@@ -946,6 +1013,15 @@ if (others != NULL)
 {
 	delete[] others;
 	others = NULL;
+}
+
+for (int i=0;i<noovec;i++) {
+ othersVec[i]->Delete();
+}
+if (othersVec != NULL)
+{
+	delete[] othersVec;
+	othersVec = NULL;
 }
 
 points->Delete();
