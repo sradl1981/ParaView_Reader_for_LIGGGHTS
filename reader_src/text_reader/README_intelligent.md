@@ -21,6 +21,9 @@ To clean, to a
 >> make clean
 
 In paraview, go to "Tools / Manage Plugins", and then simply "Load New" (select the *.so file). Press the "+" button in the newly loaded plugin, and activate "Auto Load". The latter will auto-load the plugin every time you load paraview. Hint: if you do not see the new plugin, you have not compiled the plugin for the used ParaView version.
+Hint:
+In order to compile the reader, it may be necessary to create several symbolic links to libraries of the Qt package. 
+
 
 Features
 ----------------------

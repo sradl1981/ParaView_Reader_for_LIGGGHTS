@@ -208,6 +208,7 @@ int liggghts_reader::RequestData(vtkInformation *request, vtkInformationVector *
 
 	std::string OTHERname[128];
 	std::string OTHERVECname[128];
+	int         fullVecCounter[128]={0};
 
 	while(std::getline(ss, item, ' ')) {
 		if (item.compare("id") == 0) {
@@ -408,9 +409,15 @@ int liggghts_reader::RequestData(vtkInformation *request, vtkInformationVector *
 			if( item.compare(item.size()-3,3,"[1]") == 0 ) //check if first component of vector quantity
 			{
 //    			vtkErrorMacro(<<"unknown VECTOR item @Pos" << pos << " " <<item.c_str());
+	    		//Also add as scalar
+    			OTHERpos[noo]=pos;
+	    		OTHERname[noo]=item.c_str();
+	    		noo++;
+
     			OTHERVECpos[noovec][0]=pos;
-    			item.resize(item.size()-3); //chop off the brackets
+    			item.resize(item.size()-3); //chop off the brackets, save as vector
 	    		OTHERVECname[noovec]=item.c_str();
+	    		fullVecCounter[noovec] = 1;
 	    		noovec++;
 	    		pos++;
 			}
@@ -421,6 +428,7 @@ int liggghts_reader::RequestData(vtkInformation *request, vtkInformationVector *
         			vtkErrorMacro(<<"could not find first component of vector with name: " <<item.c_str());
 			    int component = item[item.size()-2] - '0'; //convert to integer
     			OTHERVECpos[noovec-1][component-1]=pos; 
+	    		fullVecCounter[noovec-1] += 1;
 	    		pos++;
 			}
 			else
@@ -431,6 +439,20 @@ int liggghts_reader::RequestData(vtkInformation *request, vtkInformationVector *
 	    		pos++;
 	        }
 		}
+	}
+
+    //Remove incomplete vector elements
+	for (int i=0;i<noovec;i++) {
+	    if(fullVecCounter[i] < 3)
+	    {
+	            //put last to current
+    			OTHERVECpos[i][0] = OTHERVECpos[noovec-1][0];
+    			OTHERVECpos[i][1] = OTHERVECpos[noovec-1][1];
+    			OTHERVECpos[i][2] = OTHERVECpos[noovec-1][2];
+	    		OTHERVECname[i]   = OTHERVECname[noovec-1];
+	    		fullVecCounter[i] = fullVecCounter[noovec-1];
+	    		noovec--;	    
+	    }
 	}
 
 	//check if we have 3D coords ..
