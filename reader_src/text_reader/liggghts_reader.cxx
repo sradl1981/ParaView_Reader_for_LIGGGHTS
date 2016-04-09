@@ -28,8 +28,10 @@
 #include "vtkStringArray.h"
 #include "vtkCharArray.h"
 #include "vtkFloatArray.h"
+#include "vtkPainterDeviceAdapter.h"
 
-#include <vtksys/ios/sstream>
+//#include <vtksys/ios/sstream> //use for Paraview 4.4 or older
+#include <sstream>
 #include "vtkPolyDataAlgorithm.h"
 
 #if defined(WIN32) && defined(MEASURE_TIME)
