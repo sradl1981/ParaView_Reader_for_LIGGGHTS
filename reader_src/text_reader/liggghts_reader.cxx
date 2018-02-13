@@ -28,7 +28,7 @@
 #include "vtkStringArray.h"
 #include "vtkCharArray.h"
 #include "vtkFloatArray.h"
-#include "vtkPainterDeviceAdapter.h"
+#include "vtkPainterCommunicator.h"
 
 //#include <vtksys/ios/sstream> //use for Paraview 4.4 or older
 #include <sstream>

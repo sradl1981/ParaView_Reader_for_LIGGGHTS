@@ -1,4 +1,0 @@
-<ParaViewReaders>
- <Proxy group="sources" name="liggghts_Reader" />
-</ParaViewReaders>
-
