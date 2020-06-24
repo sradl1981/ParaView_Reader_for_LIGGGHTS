@@ -4,6 +4,7 @@ A General Reader for LIGGGHTS dump files into
 Contributing Authors
 ---------------
 Stefan Radl 
+
 https://github.com/richti83 (provided basic implementation)
 
 How To Build & Integrate
@@ -24,7 +25,8 @@ WARNING: after doing "make clean", you MUST creat the "liggghts_reader.xml" file
 
 In paraview, go to "Tools / Manage Plugins", and then simply "Load New" (select the *.so file). Press the "+" button in the newly loaded plugin, and activate "Auto Load". The latter will auto-load the plugin every time you load paraview. Hint: if you do not see the new plugin, you have not compiled the plugin for the used ParaView version.
 Hint:
-In order to compile the reader, it may be necessary to create several symbolic links to libraries of the Qt package. 
+
+WARNING: In order to compile the reader, it may be necessary to create several symbolic links to libraries (e.g., of the Qt package. or libXt) as a root user.  Therefore, check if the library in question is available on your system, e.g., using Yast, and then create the link to the library.
 
 
 Features
